@@ -1,41 +1,40 @@
-const { ApolloServer  } = require('apollo-server');
-const typeDefs = require('./db/schema');
-const resolvers = require('./db/resolvers');
-const connectDB = require('./config/db');
-// const jwt = require('jsonwebtoken');
-require('dotenv').config({ path: 'variables.env' });
+const config = require('./config/config');
+const mongoose = require('mongoose');
+const app = require('./app');
 
-const Worker = require('./models/Worker');
+let server;
 
-// connect to DB
-connectDB();
+// connect to MongoDB
+mongoose.connect(config.mongoose.url, config.mongoose.options)
+    .then(() => {
+        console.log('Connected to DB');
+        server = app.listen(config.port, () => {
+            console.log(`Listening to port ${config.port}`);
+        });
+    });
 
-// server
-const server = new ApolloServer({
-    typeDefs,
-    resolvers, 
-    context: ({req}) => {
-        // console.log(req.headers['authorization'])
-
-        // console.log(req.headers);
-
-        // const token = req.headers['authorization'] || '';
-        // if(token) {
-        //     try {
-        //         const usuario = jwt.verify(token.replace('Bearer ', ''), process.env.SECRETA );
-        //         // console.log(usuario);
-        //         return {
-        //             usuario
-        //         }
-        //     } catch (error) {
-        //         console.log('Hubo un error');
-        //         console.log(error);
-        //     }
-        // }
+const exitHandler = () => {
+    if (server) {
+        server.close(() => {
+            console.log('Server closed');
+            process.exit(1);
+        });
+    } else {
+        process.exit(1);
     }
-});
+};
 
-// run the server
-server.listen({ port: process.env.PORT || 4000 }).then( ({url}) => {
-    console.log(`Server running on ${url}`)
+const unexpectedErrorHandler = (error) => {
+    console.log(error);
+    exitHandler();
+};
+
+process.on('uncaughtException', unexpectedErrorHandler);
+process.on('unhandledRejection', unexpectedErrorHandler);
+
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received');
+    if (server) {
+        server.close();
+    }
 });
