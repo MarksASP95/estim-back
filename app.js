@@ -8,18 +8,24 @@ app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
 
-app.use(cors());
-app.options('*', cors());
-
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.use(cors());
 
 // routes
 app.get('/', async (req, res) =>  {
     res.send('Welcome to the Estim API!')
 });
 
-// workers routes
+// workers
 app.use('/workers', require('./routes/workers'));
+
+// projects
+app.use('/projects', require('./routes/projects'));
+
+// tasks
+app.use('/tasks', require('./routes/tasks'));
+
 
 // send back a 404 error for any unknown api request
 app.use((req, res, next) => {
